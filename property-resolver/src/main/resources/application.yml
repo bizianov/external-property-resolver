@@ -1,0 +1,6 @@
+service:
+  enabled: true
+
+property:
+  resolver:
+    propertyFilePath: /home/viacheslav/dev/java/agt/property-resolver/src/main/resources/properties.yml
