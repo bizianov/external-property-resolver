@@ -1,15 +1,14 @@
 package resolver.property;
 
-import com.esotericsoftware.yamlbeans.YamlReader;
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Map;
 
@@ -26,10 +25,10 @@ public class ExternalPropertyReader implements PropertyReader {
 
     @PostConstruct
     public void init() throws IOException {
-        Reader reader = Files.newBufferedReader(Paths.get(propertyFilePath));
-        YamlReader yamlReader = new YamlReader(reader);
-        Map<String, Object> allPropertiesJson = yamlReader.read(Map.class);
-        allProperties = convertToFlatMap(allPropertiesJson);
+        YamlMapFactoryBean yamlMapFactoryBean = new YamlMapFactoryBean();
+        yamlMapFactoryBean.setResources(new FileSystemResource(Paths.get(propertyFilePath).toFile()));
+        Map<String, Object> allPropertiesMap = yamlMapFactoryBean.getObject();
+        allProperties = convertToFlatMap(allPropertiesMap);
     }
 
     @Override
