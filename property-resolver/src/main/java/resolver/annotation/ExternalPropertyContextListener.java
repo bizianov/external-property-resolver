@@ -14,19 +14,27 @@ import resolver.property.PropertyReader;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 
+import static resolver.property.ExternalPropertyReader.EMPTY_STRING;
+
 /**
  * Created by viacheslav on 5/23/17.
  */
 @Component
 public class ExternalPropertyContextListener implements ApplicationListener<ContextRefreshedEvent> {
 
-    @Autowired
-    private ConfigurableListableBeanFactory beanFactory;
-    @Autowired
-    private PropertyReader propertyReader;
+    private final ConfigurableListableBeanFactory beanFactory;
+    private final PropertyReader propertyReader;
+
     private static final String DELIMITER = ".";
-    String prefix;
-    String property;
+    private String prefix;
+    private String property;
+
+
+    @Autowired
+    public ExternalPropertyContextListener(ConfigurableListableBeanFactory beanFactory, PropertyReader propertyReader) {
+        this.beanFactory = beanFactory;
+        this.propertyReader = propertyReader;
+    }
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
@@ -40,28 +48,27 @@ public class ExternalPropertyContextListener implements ApplicationListener<Cont
                     if (beanClassName != null) {
                         try {
                             Class<?> beanClass = Class.forName(beanClassName);
-                            ConfigurationProperties configurationPropertiesAnnotation = beanClass.getAnnotation(ConfigurationProperties.class);
+                            ConfigurationProperties configurationPropertiesAnnotation =
+                                    beanClass.getAnnotation(ConfigurationProperties.class);
                             if (configurationPropertiesAnnotation != null) {
                                 prefix = configurationPropertiesAnnotation.prefix();
                             }
                             Field[] declaredFields = beanClass.getDeclaredFields();
                             Arrays.asList(declaredFields)
                                     .stream()
-                                    .filter(new ExternalPropertyAnnotationFieldPredicate())
+                                    .filter(field -> field.isAnnotationPresent(ExternalProperty.class))
                                     .forEach(field -> {
                                         String fieldName = field.getName();
-                                        if (prefix.isEmpty()) {
-                                            property = fieldName;
-                                        } else {
-                                            property = new StringBuilder(prefix)
-                                                    .append(DELIMITER)
-                                                    .append(fieldName)
-                                                    .toString();
-                                        }
+                                        property = prefix.isEmpty() ? fieldName : new StringBuilder(prefix)
+                                                .append(DELIMITER)
+                                                .append(fieldName)
+                                                .toString();
                                         String externalProperty = propertyReader.getExternalProperty(property);
-                                        field.setAccessible(true);
-                                        Object bean = applicationContext.getBean(beanClass);
-                                        ReflectionUtils.setField(field, bean, externalProperty);
+                                        if (!externalProperty.equals(EMPTY_STRING)) {
+                                            field.setAccessible(true);
+                                            Object bean = applicationContext.getBean(beanClass);
+                                            ReflectionUtils.setField(field, bean, externalProperty);
+                                        }
                                     });
                         } catch (ClassNotFoundException e) {
                             e.printStackTrace();

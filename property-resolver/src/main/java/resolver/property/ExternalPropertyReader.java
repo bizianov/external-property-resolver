@@ -2,6 +2,7 @@ package resolver.property;
 
 import com.github.wnameless.json.flattener.JsonFlattener;
 import com.google.gson.Gson;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.core.io.FileSystemResource;
@@ -19,9 +20,13 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "property.resolver")
 public class ExternalPropertyReader implements PropertyReader {
 
+    public static final String EMPTY_STRING = "";
+
+    @Autowired
+    private Gson gson;
+
     private String propertyFilePath;
     private Map<String, Object> allProperties;
-    private static final String EMPTY_STRING = "";
 
     @PostConstruct
     public void init() throws IOException {
@@ -37,8 +42,7 @@ public class ExternalPropertyReader implements PropertyReader {
         return value != null ? value : EMPTY_STRING;
     }
 
-    private static Map<String, Object> convertToFlatMap(Map<String, Object> jsonMap) {
-        Gson gson = new Gson();
+    private Map<String, Object> convertToFlatMap(Map<String, Object> jsonMap) {
         String json = gson.toJson(jsonMap);
         return JsonFlattener.flattenAsMap(json);
     }
