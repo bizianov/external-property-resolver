@@ -38,8 +38,8 @@ public class ExternalPropertyReader implements PropertyReader {
 
     @Override
     public String getExternalProperty(String propName) {
-        String value = allProperties.get(propName).toString();
-        return value != null ? value : EMPTY_STRING;
+        Object value = allProperties.get(propName);
+        return value != null ? value.toString() : EMPTY_STRING;
     }
 
     private Map<String, Object> convertToFlatMap(Map<String, Object> jsonMap) {
