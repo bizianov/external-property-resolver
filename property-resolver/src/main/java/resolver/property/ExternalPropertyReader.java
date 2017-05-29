@@ -34,12 +34,14 @@ public class ExternalPropertyReader implements PropertyReader {
         yamlMapFactoryBean.setResources(new FileSystemResource(Paths.get(propertyFilePath).toFile()));
         Map<String, Object> allPropertiesMap = yamlMapFactoryBean.getObject();
         allProperties = convertToFlatMap(allPropertiesMap);
+        System.out.println(allProperties);
+        System.out.println(propertyFilePath);
     }
 
     @Override
     public String getExternalProperty(String propName) {
-        String value = allProperties.get(propName).toString();
-        return value != null ? value : EMPTY_STRING;
+        Object value = allProperties.get(propName);
+        return value != null ? value.toString() : EMPTY_STRING;
     }
 
     private Map<String, Object> convertToFlatMap(Map<String, Object> jsonMap) {

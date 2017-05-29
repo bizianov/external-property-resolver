@@ -13,6 +13,8 @@ import resolver.property.PropertyReader;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Map;
 
 import static resolver.property.ExternalPropertyReader.EMPTY_STRING;
 
@@ -22,7 +24,6 @@ import static resolver.property.ExternalPropertyReader.EMPTY_STRING;
 @Component
 public class ExternalPropertyContextListener implements ApplicationListener<ContextRefreshedEvent> {
 
-    private final ConfigurableListableBeanFactory beanFactory;
     private final PropertyReader propertyReader;
 
     private static final String DELIMITER = ".";
@@ -31,49 +32,36 @@ public class ExternalPropertyContextListener implements ApplicationListener<Cont
 
 
     @Autowired
-    public ExternalPropertyContextListener(ConfigurableListableBeanFactory beanFactory, PropertyReader propertyReader) {
-        this.beanFactory = beanFactory;
+    public ExternalPropertyContextListener(PropertyReader propertyReader) {
         this.propertyReader = propertyReader;
     }
 
     @Override
     public void onApplicationEvent(ContextRefreshedEvent contextRefreshedEvent) {
         ApplicationContext applicationContext = contextRefreshedEvent.getApplicationContext();
-        String[] beanDefinitionNames = beanFactory.getBeanDefinitionNames();
-        Arrays.asList(beanDefinitionNames)
+        Map<String, Object> beansWithAnnotationMap =
+                applicationContext.getBeansWithAnnotation(ConfigurationProperties.class);
+        Collection<Object> beansWithAnnotation = beansWithAnnotationMap.values();
+        beansWithAnnotation
                 .stream()
-                .forEach(beanDefinitionName -> {
-                    BeanDefinition beanDefinition = beanFactory.getBeanDefinition(beanDefinitionName);
-                    String beanClassName = beanDefinition.getBeanClassName();
-                    if (beanClassName != null) {
-                        try {
-                            Class<?> beanClass = Class.forName(beanClassName);
-                            ConfigurationProperties configurationPropertiesAnnotation =
-                                    beanClass.getAnnotation(ConfigurationProperties.class);
-                            if (configurationPropertiesAnnotation != null) {
-                                prefix = configurationPropertiesAnnotation.prefix();
-                            }
-                            Field[] declaredFields = beanClass.getDeclaredFields();
-                            Arrays.asList(declaredFields)
-                                    .stream()
-                                    .filter(field -> field.isAnnotationPresent(ExternalProperty.class))
-                                    .forEach(field -> {
-                                        String fieldName = field.getName();
-                                        property = prefix.isEmpty() ? fieldName : new StringBuilder(prefix)
-                                                .append(DELIMITER)
-                                                .append(fieldName)
-                                                .toString();
-                                        String externalProperty = propertyReader.getExternalProperty(property);
-                                        if (!externalProperty.equals(EMPTY_STRING)) {
-                                            field.setAccessible(true);
-                                            Object bean = applicationContext.getBean(beanClass);
-                                            ReflectionUtils.setField(field, bean, externalProperty);
-                                        }
-                                    });
-                        } catch (ClassNotFoundException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                .forEach(bean -> {
+                    Class<?> beanClass = bean.getClass();
+                    prefix = beanClass.getAnnotation(ConfigurationProperties.class).prefix();
+                    Field[] declaredFields = beanClass.getDeclaredFields();
+                    Arrays.asList(declaredFields)
+                            .stream()
+                            .forEach(field -> {
+                                String fieldName = field.getName();
+                                property = prefix.isEmpty() ? fieldName : new StringBuilder(prefix)
+                                        .append(DELIMITER)
+                                        .append(fieldName)
+                                        .toString();
+                                String externalProperty = propertyReader.getExternalProperty(property);
+                                if (!externalProperty.equals(EMPTY_STRING)) {
+                                    field.setAccessible(true);
+                                    ReflectionUtils.setField(field, bean, externalProperty);
+                                }
+                            });
                 });
     }
 }
