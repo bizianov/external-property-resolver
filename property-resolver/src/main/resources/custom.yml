@@ -1,0 +1,10 @@
+service:
+  enabled: true
+
+  map:
+    python:
+      path: pythonPath
+      type: pythonType
+    java:
+      path: javaPath
+      type: javaType

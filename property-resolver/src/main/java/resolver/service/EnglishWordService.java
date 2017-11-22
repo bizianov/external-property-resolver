@@ -7,6 +7,7 @@ import resolver.annotation.ExternalProperty;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 /**
@@ -19,6 +20,7 @@ public class EnglishWordService implements WordService{
 
     @ExternalProperty
     private String words;
+    private Map<String, Map<String, String>> map;
 
     public EnglishWordService() {
     }
@@ -33,5 +35,13 @@ public class EnglishWordService implements WordService{
 
     public void setWords(String words) {
         this.words = words;
+    }
+
+    public Map<String, Map<String, String>> getMap() {
+        return map;
+    }
+
+    public void setMap(Map<String, Map<String, String>> map) {
+        this.map = map;
     }
 }
